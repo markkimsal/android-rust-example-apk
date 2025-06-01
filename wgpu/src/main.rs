@@ -1,4 +1,4 @@
-use android_rust_example_apk::_main;
+use android_rust_example_apk_wgpu::_main;
 
 fn main() {
     env_logger::builder()

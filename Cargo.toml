@@ -1,25 +1,8 @@
-[package]
-name = "android-rust-example-apk"
-version = "0.1.0"
-edition = "2021"
 
-[dependencies]
-winit = "0.30.11"
-log = "0.4.17"
-env_logger = "0.11.8"
-wgpu = "24.0.5"
-futures = "0.3.31"
-
-[target.'cfg(target_os  = "android")'.dependencies]
-android-activity = {version = "0.6.0", features = ["native-activity"]}
-winit = {version = "0.30.11", features = ["android-native-activity"]}
 
 [workspace]
-resolver = "3"
+resolver = "2"
 members = ["wgpu"]
 
-[features]
-android = ["android-activity/native-activity"]
-
-[lib]
-crate-type = ["cdylib", "rlib"]
+#[lib]
+#crate-type = ["cdylib", "rlib"]

@@ -21,6 +21,9 @@ struct GfxState<'window> {
     pub device: ::wgpu::Device,
     pub queue: ::wgpu::Queue,
     pub cursor_position: ::winit::dpi::PhysicalPosition<f64>,
+    pub format: ::wgpu::TextureFormat,
+    pub did_resize: bool,
+    pub size: (u32, u32),
 }
 impl <'window>ApplicationState<'window>  {
     pub fn new () -> Self {
@@ -48,8 +51,10 @@ impl <'window>ApplicationState<'window> {
             adapter.request_device(
                 &wgpu::DeviceDescriptor{
                     label: None,
-                    required_features: adapter.features(),
-                    required_limits: wgpu::Limits::downlevel_webgl2_defaults(),
+                    // required_features: adapter.features(),
+                    required_features: ::wgpu::Features::empty(),
+                    required_limits: wgpu::Limits::downlevel_webgl2_defaults()
+                        .using_resolution(adapter.limits()),
                     memory_hints: wgpu::MemoryHints::MemoryUsage,
                 },
                 None
@@ -77,17 +82,16 @@ impl <'window>ApplicationState<'window> {
         surface.configure(
             &device,
             &wgpu::SurfaceConfiguration {
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                format,
-                width: physical_size.width,
-                height: physical_size.height,
-                present_mode: wgpu::PresentMode::AutoVsync,
-                alpha_mode: wgpu::CompositeAlphaMode::Auto,
-                view_formats: vec![],
+                usage                        : ::wgpu::TextureUsages::RENDER_ATTACHMENT,
+                format                       : format,
+                width                        : physical_size.width,
+                height                       : physical_size.height,
+                present_mode                 : ::wgpu::PresentMode::AutoVsync,
+                alpha_mode                   : ::wgpu::CompositeAlphaMode::Auto,
+                view_formats                 : vec![],
                 desired_maximum_frame_latency: 10,
             },
         );
-
         self.gfx = Some(GfxState{
             window: window.clone(),
             surface_configured: true,
@@ -96,17 +100,22 @@ impl <'window>ApplicationState<'window> {
             device,
             queue,
             cursor_position: ::winit::dpi::PhysicalPosition::<f64> {x: 0.0, y: 0.0},
+            format,
+            did_resize: false,
+            size: (physical_size.width, physical_size.height),
+
         });
     }
 }
 impl <'window>ApplicationHandler for ApplicationState<'window> {
-    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        if self.gfx.is_none() {
-            event_loop.exit();
-        }
-    }
+    // fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+    //     if self.gfx.is_none() {
+    //         event_loop.exit();
+    //     }
+    // }
 
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        info!("Window resumed");
         let window = Arc::new(
             event_loop.create_window(winit::window::WindowAttributes::default())
                 .expect("cannot create window")
@@ -134,17 +143,20 @@ impl <'window>ApplicationHandler for ApplicationState<'window> {
             adapter,
             device,
             queue,
-            mut cursor_position,
-        } = self.gfx.as_ref().unwrap();
-
+            cursor_position,
+            format,
+            did_resize,
+            size,
+        } = self.gfx.as_mut().expect("cannot destruct gfxstate, even though it is not none");
 
         match event {
             ::winit::event::WindowEvent::CloseRequested => {
                 self.gfx = None;
+                event_loop.exit();
                 ()
             },
             ::winit::event::WindowEvent::Touch(touch) => {
-                cursor_position = touch.location;
+                *cursor_position = touch.location;
             },
             ::winit::event::WindowEvent::KeyboardInput { device_id, event, is_synthetic } => {
                 #[cfg(target_os="android")]
@@ -174,7 +186,12 @@ impl <'window>ApplicationHandler for ApplicationState<'window> {
                 }
             },
             ::winit::event::WindowEvent::ActivationTokenDone { serial, token } => (),
-            ::winit::event::WindowEvent::Resized(physical_size) => (),
+            ::winit::event::WindowEvent::Resized(physical_size) => {
+                info!("resized {} x {}", physical_size.width, physical_size.height);
+                // size = (physical_size.width, physical_size.height);
+                *did_resize = true;
+                window.request_redraw();
+            },
             ::winit::event::WindowEvent::Moved(physical_position) => (),
             ::winit::event::WindowEvent::Destroyed => (),
             ::winit::event::WindowEvent::DroppedFile(path_buf) => (),
@@ -198,78 +215,56 @@ impl <'window>ApplicationHandler for ApplicationState<'window> {
             ::winit::event::WindowEvent::ThemeChanged(theme) => (),
             ::winit::event::WindowEvent::Occluded(_) => (),
             ::winit::event::WindowEvent::RedrawRequested => {
-                   // if *resized {
-                    //     let size = window.inner_size();
+                   if *did_resize {
+                        let size = window.inner_size();
 
-                    //     *viewport = Viewport::with_physical_size(
-                    //         Size::new(size.width, size.height),
-                    //         window.scale_factor(),
-                    //     );
+                        surface.configure(
+                            device,
+                            &wgpu::SurfaceConfiguration {
+                                format                       : *format,
+                                usage                        : ::wgpu::TextureUsages::RENDER_ATTACHMENT,
+                                width                        : size.width,
+                                height                       : size.height,
+                                present_mode                 : ::wgpu::PresentMode::AutoVsync,
+                                alpha_mode                   : ::wgpu::CompositeAlphaMode::Auto,
+                                view_formats                 : vec![],
+                                desired_maximum_frame_latency: 10,
+                            },
+                        );
 
-                    //     surface.configure(
-                    //         device,
-                    //         &wgpu::SurfaceConfiguration {
-                    //             format: *format,
-                    //             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                    //             width: size.width,
-                    //             height: size.height,
-                    //             present_mode: wgpu::PresentMode::AutoVsync,
-                    //             alpha_mode: wgpu::CompositeAlphaMode::Auto,
-                    //             view_formats: vec![],
-                    //             desired_maximum_frame_latency: 2,
-                    //         },
-                    //     );
-
-                    //     *resized = false;
-                    // }
+                        *did_resize = false;
+                    }
 
                     match surface.get_current_texture() {
                         Ok(frame) => {
+                            info!("got frame inside redraw requested");
                             let mut encoder = device.create_command_encoder(
-                                &wgpu::CommandEncoderDescriptor { label: None },
+                                &::wgpu::CommandEncoderDescriptor { label: None },
                             );
-
-                            // let program = state.program();
-
-                            let view = frame.texture.create_view(
-                                &wgpu::TextureViewDescriptor::default(),
-                            );
-
+                            let view = frame.texture.create_view(&::wgpu::TextureViewDescriptor::default());
                             {
-                                // We clear the frame
-                                // let mut render_pass = Scene::clear(
-                                //     &view,
-                                //     &mut encoder,
-                                //     program.background_color(),
-                                // );
-
-                                // Draw the scene
-                                // scene.draw(&mut render_pass);
+                                let mut rpass = encoder.begin_render_pass(&::wgpu::RenderPassDescriptor {
+                                    label: Some("Render Pass"),
+                                    color_attachments: &[Some(::wgpu::RenderPassColorAttachment {
+                                        view: &view,
+                                        resolve_target: None,
+                                        ops: ::wgpu::Operations {
+                                            load: ::wgpu::LoadOp::Clear(::wgpu::Color::GREEN),
+                                            store: ::wgpu::StoreOp::Store,
+                                        }
+                                    })],
+                                    depth_stencil_attachment: None,
+                                    timestamp_writes: None,
+                                    occlusion_query_set: None,
+                                });
+                                // rpass.set_pipeline(pipeline);
+                                // rpass.draw(0..0, 0..0);
                             }
 
-                            // And then iced on top
-                            // renderer.present(
-                            //     engine,
-                            //     device,
-                            //     queue,
-                            //     &mut encoder,
-                            //     None,
-                            //     frame.texture.format(),
-                            //     &view,
-                            //     viewport,
-                            //     &debug.overlay(),
-                            // );
 
-                            // Then we submit the work
-                            // engine.submit(queue, encoder);
+                            queue.submit(Some(encoder.finish()));
                             frame.present();
-
-                            // Update the mouse cursor
-                            // window.set_cursor(
-                            //     iced_winit::conversion::mouse_interaction(
-                            //         state.mouse_interaction(),
-                            //     ),
-                            // );
+                            // window.request_redraw();
                         }
                         Err(error) => match error {
                             wgpu::SurfaceError::OutOfMemory => {
@@ -291,7 +286,9 @@ impl <'window>ApplicationHandler for ApplicationState<'window> {
 
 pub fn _main( event_loop: EventLoop<()>) -> Result<(), winit::error::EventLoopError>
 {
+        log::info!("_main , app state new() ...");
     let mut app = ApplicationState::new();
+    event_loop.set_control_flow(::winit::event_loop::ControlFlow::Wait);
     event_loop.run_app(&mut app)
 }
 
@@ -303,9 +300,16 @@ mod android {
     #[no_mangle]
     pub fn android_main(app: AndroidApp) {
 
+        ::android_logger::init_once(
+            ::android_logger::Config::default()
+                .with_tag("NAWINITWGPU")
+                .with_max_level(::log::LevelFilter::Info)
+        );
+        // ::android_logger::Config
         log::info!("android_main started");
         let event_loop = ::winit::event_loop::EventLoop::builder()
             .with_android_app(app).build().unwrap();
+
         let _ = _main(event_loop);
     }
 
