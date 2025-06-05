@@ -1,0 +1,33 @@
+[package]
+name = "android-rust-example-apk-jni"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winit = "0.30.11"
+log = "0.4.17"
+env_logger = "0.11.8"
+
+[target.'cfg(target_os  = "android")'.dependencies]
+android-activity = {version = "0.6.0", features = ["native-activity"]}
+android_logger = "0.15.0"
+winit = {version = "0.30.11", features = ["android-native-activity"]}
+ndk = "0.9.0"
+ndk-sys = "0.6.0"
+jni = "0.21.1"
+ndk-context = "0.1.0"
+fd = "*"
+libc = "*"
+
+
+# [features]
+# android = ["android-activity/native-activity"]
+
+#[[bin]]
+#name = "android-rust-example-apk-jni"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# [patch.crates-io]
+# android-activity = { git = 'https://github.com/markkimsal/android-activity.git', branch = 'features/0.6.0-expose-main-looper' }

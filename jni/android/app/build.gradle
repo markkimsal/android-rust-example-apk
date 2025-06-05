@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    ndkVersion "28.0.13004108"
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "co.realfit.nawinitwgpu"
+        minSdk 28
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // proguardFile getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            packagingOptions {
+               doNotStrip '**/*.so'
+            }
+            debuggable true
+        }
+        debug {
+            minifyEnabled false
+            packagingOptions {
+               doNotStrip '**/*.so'
+            }
+            debuggable true
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    namespace 'co.realfit.nawinitwgpu'
+}
+
+dependencies {
+
+}
+

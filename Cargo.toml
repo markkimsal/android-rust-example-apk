@@ -2,7 +2,7 @@
 
 [workspace]
 resolver = "2"
-members = ["wgpu"]
+members = ["wgpu", "jni"]
 
-#[lib]
-#crate-type = ["cdylib", "rlib"]
+[patch.crates-io]
+android-activity = { git = 'https://github.com/markkimsal/android-activity.git', branch = 'features/0.6.0-expose-main-looper' }
