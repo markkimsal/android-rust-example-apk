@@ -2,7 +2,7 @@
 use ::std::sync::Arc;
 
 use ::log::info;
-use ::wgpu::{Instance, Surface};
+use ::wgpu::{Color, Instance, Surface};
 use ::winit::{application::ApplicationHandler, keyboard::PhysicalKey};
 use ::winit::event_loop::EventLoop;
 #[allow(unused_imports)]
@@ -243,13 +243,13 @@ impl <'window>ApplicationHandler for ApplicationState<'window> {
                             );
                             let view = frame.texture.create_view(&::wgpu::TextureViewDescriptor::default());
                             {
-                                let mut rpass = encoder.begin_render_pass(&::wgpu::RenderPassDescriptor {
+                                let rpass = encoder.begin_render_pass(&::wgpu::RenderPassDescriptor {
                                     label: Some("Render Pass"),
                                     color_attachments: &[Some(::wgpu::RenderPassColorAttachment {
                                         view: &view,
                                         resolve_target: None,
                                         ops: ::wgpu::Operations {
-                                            load: ::wgpu::LoadOp::Clear(::wgpu::Color::GREEN),
+                                            load: ::wgpu::LoadOp::Clear(Color{r: 0.5, g: 0.76, b: 0.5, a: 1.0}),
                                             store: ::wgpu::StoreOp::Store,
                                         }
                                     })],
